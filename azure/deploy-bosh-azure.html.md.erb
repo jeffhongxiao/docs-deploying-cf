@@ -1,0 +1,130 @@
+---
+title: Deploy BOSH on Azure via ARM templates
+owner: Release Integration
+---
+
+This topic describes how to use an Azure Resource Management (ARM) template to deploy BOSH.  
+Follow this procedure to use the ARM template to create the following Azure resources required for deploying BOSH and Cloud Foundry:
+
+* A default Storage Account
+* Three reserved public IPs
+  * For dev-box
+  * For Cloud Foundry
+  * For Bosh
+* A Virtual Network
+* A Virtual Machine (VM) as your dev-box
+* A Bosh Director if you need
+
+
+## <a id='setup'></a> Step 1: Setup Parameters in the Azure Dashboard ##
+
+<p class="note"><strong>Note</strong>: Currently BOSH can only be deployed from a Virtual Machine (dev-box) in the same virtual network on Azure.</p>
+
+The [**bosh-setup**](https://github.com/Azure/azure-quickstart-templates/tree/master/bosh-setup) ARM template can help you to deploy the above resources on Azure. Log in to your 
+<a href="https://portal.azure.com/#create/Microsoft.Template/uri/https%3A%2F%2Fraw.githubusercontent.com%2FAzure%2Fazure-quickstart-templates%2Fmaster%2Fbosh-setup%2Fazuredeploy.json" target="_blank"> Azure Dashboard </a> and enter the values for each field below:
+
+
+| Name | Required | Default Value | Description |
+|:----:|:--------:|:-------------:|:----------- |
+| vmName | **YES** | | Name of Virtual Machine |
+| adminUsername | **YES** | | Username for the Virtual Machines. **Never use root as the adminUsername**. |
+| [sshKeyData](#keys) | **YES** | | SSH **RSA** public key file as a string that starts with `ssh-rsa`. |
+| environment | **YES**  | | Different environments in Azure. Choose AzureCloud for Global Azure, and choose AzureChinaCloud for Mooncake (Azure China Cloud). |
+| tenantID | **YES**  | | ID of the tenant |
+| clientID | **YES**  | | ID of the client |
+| clientSecret | **YES** | | secret of the client |
+| [autoDeployBosh](#bosh) | NO | enabled | The flag allowing to deploy the Bosh director. |
+
+### <a id='keys'></a>sshKeyData ###
+
+[**For Linux/Mac Users**](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-linux-use-ssh-key/)
+
+1. Run `ssh-keygen` to create a 2048-bit RSA public and private key files. Use the default location and name, or a specific location and name for the files.
+
+    <pre class="terminal">$ ssh-keygen -t rsa -b 2048</pre>
+
+1. Paste the contents of the public key file into the **sshKeyData** field in the Azure Dashboard. If you did not specify a location, you can find the public key in `~/.ssh/id_rsa.pub`.
+
+
+[**For Windows Users**](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-windows-use-ssh-key/)
+
+  1. Use PuttyGen to generate a public and private key pair.
+  2. Paste the public key into the **sshKeyData** field in the Azure Dashboard.
+  3. Save the private key as a `.ppk` file for use in the [Log in to Your dev-box](#devbox) section of this topic.
+
+
+### <a id='bosh'></a>autoDeployBosh ###
+
+The `autoDeployBosh` field is `enabled` by default, which means that the template deploys the Bosh Director. This increases the deployment time of the `bosh-setup` template by about one hour. Setting this field to `disabled` allows to customize your `bosh.yml` before deploying.
+
+## <a id='advanced-config'></a>Advanced Manifest Configurations 
+
+The ARM template pre-creates and configures the deployment manifest file `bosh.yml` in your home directory. If you want to customize your `bosh-setup` [template](https://github.com/Azure/azure-quickstart-templates/blob/master/bosh-setup/azuredeploy.json), you can modify the following variables by navigating to **Edit Templates** in your Azure Dashboard.
+
+| Name | Default Value |
+|------|---------------|
+| storageAccountType* | Standard_RAGRS |
+| virtualNetworkName | boshvnet-crp |
+| virtualNetworkAddressSpace | 10.0.0.0/16 |
+| subnetNameForBosh | Bosh |
+| subnetAddressRangeForBosh | 10.0.0.0/24 |
+| subnetNameForCloudFoundry | CloudFoundry |
+| subnetAddressRangeForCloudFoundry | 10.0.16.0/20 |
+| subnetNameForDiego | Diego |
+| subnetAddressRangeForDiego | 10.0.32.0/20 |
+| devboxNetworkSecurityGroup | nsg-devbox |
+| boshNetworkSecurityGroup | nsg-bosh |
+| cfNetworkSecurityGroup | nsg-cf |
+| vmSize** | Standard_D1 |
+| devboxPrivateIPAddress | 10.0.0.100 |
+| ubuntuOSVersion | 14.04.3-LTS |
+| keepUnreachableVMs*** | false |
+
+
+
+\* The default type of Azure storage account is `Standard_RAGRS` (Read Access Geo Redundant Storage). You cannot change `Standard_ZRS` to another account type after deploying. You also cannot change any account types to `Standard_ZRS`. View the [Storage Account types](http://azure.microsoft.com/en-us/pricing/details/storage/) for more information. 
+
+\** `vmSize` is the [instance type](https://azure.microsoft.com/en-us/documentation/articles/virtual-machines-size-specs/) of the dev-box. 
+
+\*** Set `keepUnreachableVMs` to `true` to retain unreachable VMs if your deployment fails.
+
+##<a id="devbox"></a> Verify the Status of Your Deployment
+
+1. Find the **Resource group** with the name you specified in the Azure Dashboard.
+
+1. Click the link for the **Last deployment** to view your deployment history:
+    ![View History](images/last-deployment.png)
+
+1. Select your deployment from step x:
+
+    ![Select Deployment](images/history-deployment.png)
+
+
+1. Copy your **SSHDEVBOX**:
+
+    ![SSH address](images/devbox.png)
+
+1. SSH into the VM:
+  * **For Linux/Mac**: 
+      * If you accepted the default location and name when you generated the ssh key, the private key is `~/.ssh/id_rsa`. Run the following command to log in to your dev-box: 
+        <pre class="terminal">
+        ssh adminUsername<span>@</span>VM-NAME-IN-LOWERCASE.LOCATION.cloudapp.azure.com
+        </pre>  
+      * If you specified the location and name of the private key, run the following:
+        <pre class="terminal">
+        ssh adminUsername<span>@</span>VM-NAME-IN-LOWERCASE.LOCATION.cloudapp.azure.com -i PATH-TO-YOUR-PRIVATE-KEY
+        </pre>
+  * **For Windows:**
+      1. Open **PuTTY**.
+      1. Paste the **SSHDEVBOX** from the previous step into the **Public IP address/DNS name label** field.
+      1. Click the **Connection** > **SSH** > **Auth** tab to choose your private key (.ppk). 
+      1. Click **Open**.
+
+1. After you login, you can check `~/install.log` to determine the status of the deployment. When the deployment succeeds, you will see **Finish** as the deployment status at the end of the log file. For more verbose logs, run `~/run.log`.
+
+##<a id="deploy"></a> Deploy BOSH (If you are using Advanced Manifest Configurations)
+
+<p class="note"><strong>Note</strong>: Do not use root to perform these steps.</p>
+
+If you set **autoDeployBosh** to `enabled`, you can skip this step. Run the following command in your home directory to deploy BOSH:
+    <pre class="terminal">$ ./deploy_bosh.sh</pre>
