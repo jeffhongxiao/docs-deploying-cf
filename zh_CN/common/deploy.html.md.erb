@@ -1,0 +1,95 @@
+---
+title: 部署Cloud Foundry
+owner: Release Integration
+---
+
+<strong><%= modified_date %></strong>
+
+本节描述使用BOSH部署到Cloud Foundry的过程.
+假定你已经target了你的BOSH Director, 建立了Cloud Foundry的部署Manifest文件, 并为你的部署设置使用该文件
+
+##<a id="stemcell"></a>上传Stemcell ##
+
+Stemcell是一个最低OS框架的版本化的镜像, 加以针对具体IaaS的包.
+部署Cloud Foundry, 先要选定stemcell. BOSH会将其安装到每个component VM上.
+
+1. 在浏览器中打开网址[https://bosh.io/stemcells](https://bosh.io/stemcells), 查看公开可获得的BOSH stemcells的最新列表.
+
+1. 为你的IaaS选定BOSH stemcell, **点击**build数字将其下载到你的电脑. 下载的Stemcell文件是个以gzip压缩的tar包, 不要解压该文件.
+
+1. 在命令行窗口, 运行 `bosh upload stemcell STEMCELL-PATH`以上传stemcell到BOSH Director, 其中`STEMCELL-PATH` 是你下载的stemcell文件.
+
+<pre class="terminal">
+bosh upload stemcell ~/downloads/light-bosh-stemcell-3202-aws-xen-hvm-ubuntu-trusty-go_agent.tgz
+</pre>
+
+##<a id="create-release"></a>创建Cloud Foundry Release##
+
+1. 用`bosh create release`创建一个Cloud Foundry发布.
+一些处理过后, 该命令要你提供一个development release名字. development release名字对应在 `cf-release/releases`的文件
+
+##<a id="upload-release"></a>上传Cloud Foundry Release##
+
+用 `bosh upload release`上传生成的release至BOSH Director
+
+<pre class="terminal">
+$ bosh upload release
+</pre>
+
+##<a id="deploy"></a>发布!##
+
+用 `bosh deploy` 部署上传的Cloud Foundry release.
+
+<pre class="terminal">
+$ bosh deploy
+</pre>
+
+## <a id="verify"></a>验证部署##
+
+1. 运行 `bosh vms`. 该命令提供一个虚拟机总览, 这些虚拟机由BOSH管理, 作为当前部署的一部分. 现在每个虚拟机的状态应该显示为**running**.
+1. 用 `curl` 在`api.YOUR-SYSTEM-DOMAIN/info`测试你的Cloud Foundry安装的API endpoint.
+
+    <pre class="terminal">
+    $ curl api.INCORRECT-SYSTEM-DOMAIN/info
+    404 Not Found: Requested route ('api.INCORRECT-SYSTEM-DOMAIN.com') does not exist.
+
+    $ curl api.YOUR-SYSTEM-DOMAIN
+    {
+     "code": 10000,
+     "description": "Unknown request",
+     "error_code": "CF-NotFound"
+    }
+
+    $ curl api.YOUR-SYSTEM-DOMAIN/info
+    {"name":"vcap","build":"2222","version":2,"description":"Cloud Foundry","authorization_endpoint":"https://login.YOUR-SYSTEM-DOMAIN","token_endpoint":"https://uaa.YOUR-SYSTEM-DOMAIN","allow_debug":true}
+    </pre>
+
+    如果`curl`成功, 它应该以JSON格式返回关于部署的详细信息
+    如果`curl`没有成功, 检查你的网络, 确认你的域名含有子域名的NS记录.
+
+    <br><br>
+    如果你不知道你安装的Cloud Foundry的`YOUR-SYSTEM-DOMAIN`是什么, 在你的部署manifest文件中检查`system_domain`属性
+
+1. 你现在应该可以用[Cloud Foundry命令行接口(cf CLI)](../../cf-cli/index.html)target你的Cloud Foundry安装, 并以管理员身份登录了. 用户名为`admin`, 密码在部署manifest文件中指定:
+
+    ```
+    properties:
+      ...
+      uaa:
+        ...
+        scim:
+          ...
+          users:
+          - admin|ADMIN_PASSWORD|...
+    ```
+
+关于管理organizations, spaces, users以及applications的更多信息, 请参考[cf CLI](../../cf-cli/index.html)
+
+##<a id="update-cf"></a>更新Cloud Foundry##
+
+* 如果你更改了manifest文件, 运行`bosh deploy`将这些更改用以更新你的Cloud Foundry部署.
+
+* 如果你对`cf-release`目录进行了改变, 运行下列命令将这些更改用以更新你的Cloud Foundry部署.
+<pre class="terminal">
+  $ bosh create release && bosh upload release && bosh deploy
+</pre>

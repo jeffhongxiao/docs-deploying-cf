@@ -1,0 +1,29 @@
+---
+title: 部署Cloud Foundry概述
+owner: Release Integration
+---
+
+Cloud Foundry被设计为可以在任何云IaaS提供商上配置,部署,管理,可扩展,以及升级.
+Cloud Foundry通过使用[BOSH](https://bosh.io/)达到以上目的.
+BOSH是一个提供发布工程,部署,软件周期管理和分布式系统监控的开源软件.
+
+在高一点的层次, 无论任何IaaS, 下列步骤都是一样的:
+
+1. 建立所有外部依赖, 比如IaaS帐号, 外部负载均衡, DNS记录, 以及其他额外组件.
+2. 创建manifest文件以部署BOSH Director.
+3. 部署BOSH Director
+4. 创建manifest文件以部署Cloud Foundry.
+5. 部署Cloud Foundry.
+
+对上述步骤1到3, 我们还提供了一个快速的`vagrant up`方案, 使你可以关注于发布新应用或者玩转Cloud Foundry本身.
+
+选择下列核心支持的infrastructure以开始:
+
+* <a class="subnav" href="./aws/index.html">AWS</a>
+* <a class="subnav" href="./openstack/index.html">OpenStack</a>
+* <a class="subnav" href="./vsphere/index.html">vSphere</a>
+* <a class="subnav" href="./vcloud/index.html">vCloud Air或vCloud Director</a>
+
+抑或, 如果你只是想用`vagrant up`试试, 可以使用BOSH-Lite:
+
+* <a class="subnav" href="./boshlite/index.html">BOSH-Lite</a>

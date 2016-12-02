@@ -1,0 +1,41 @@
+---
+title: 为在Amazon Web Services (AWS)上部署作准备
+owner: Release Integration
+---
+
+<strong><%= modified_date %></strong>
+
+以下步骤是一个实例过程的文档,记录了如何将Cloud Foundry部署到AWS上.
+这个过程包括几个可能会花费金钱和时间的步骤, 比如在AWS 关系数据库服务(RDS) 上配置实例.
+简单的部署,可以参考这里[最小化的AWS配置](https://github.com/cloudfoundry/cf-release/tree/master/example_manifests)
+
+## <a id='prereqs'></a>先决条件
+
+为完成这个部署, 你需要:
+
+- 一个带Virtual Private Cloud (VPC)的[Amazon Web Services](http://aws.amazon.com)(AWS)帐号
+
+- 在你的机器上安装[BOSH CLI](https://bosh.io/docs/bosh-cli.html)和[bosh-init](https://bosh.io/docs/install-bosh-init.html)
+
+- 在你的机器上安装[Ruby] (https://www.ruby-lang.org/en/documentation/installation/) 1.9.3 或更高
+
+- 你的AWS帐号要有足够高的实例(instance) limit. 使用本bootstrap工具安装Cloud Foundry要配置超过20个component虚拟机实例
+
+<p class="note"><strong>Note</strong>:
+  你可以将Cloud Foundry部署在小一些的拓朴环境中, 这包括在Vagrant上使用<a href="../boshlite/">本地开发环境</a>,
+  或者<a href="https://github.com/cloudfoundry/cf-release/tree/master/example_manifests">最小化的 AWS 配置</a>.</p>
+
+##<a id="env-setup"></a> Step 1: 环境设置 ##
+
+* [为带BOSH AWS Bootstrap的Cloud Foundry设置AWS环境 ](setup_aws.html):
+使用BOSH AWS Bootstrap工具 `bosh aws create`来在AWS上创建环境, 此环境包括VPC以及其他支持BOSH的结构.
+
+## <a id="deploy-bosh"></a> Step 2: 部署BOSH ##
+
+* [在AWS上部署BOSH](setup_bosh_aws.html):
+为BOSH创建manifest文件, 将其传给`bosh init`, 以部署BOSH到你的环境
+
+## <a id="deploy-cf"></a> Step 3: 部署Cloud Foundry ##
+
+* [为AWS定制Cloud Foundry部署的Manifest文件](cf-stub.html)
+* [使用BOSH部署Cloud Foundry](../common/deploy.html): 部署!

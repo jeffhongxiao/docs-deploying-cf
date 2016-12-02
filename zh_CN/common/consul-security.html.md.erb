@@ -1,0 +1,216 @@
+---
+title: Security Configuration for Consul
+owner: Release Integration
+---
+
+<strong><%= modified_date %></strong>
+
+Cloud Foundry requires traffic to be secure between Consul agents by using
+encryption and mutual authentication. Follow the instructions below to configure
+security for Consul.
+
+##<a id='secure'></a>Security Configuration ##
+
+1. <a id='generate-certs'></a>Generate SSL Certificates and Keys:
+
+    To generate the certificates and keys that you need for Consul, we
+    recommend using [certstrap](https://github.com/square/certstrap).
+    The [cf-release](https://github.com/cloudfoundry/cf-release) repository
+    contains a helper script, `scripts/generate-consul-certs`.
+    This script uses certstrap to initialize a certificate authority (CA), and
+    generate the certificates and keys for Consul.
+    <br><br>
+    If you already have a CA, you may have an existing workflow.
+    You can modify the `generate-consul-certs` script to use your existing CA
+    instead of generating a new one.
+    <br><br>
+    The `generate-consul-certs` script outputs files to the `./consul-certs`
+    directory.
+
+2. <a id='encrypt-keys'></a>Create Gossip Encryption Keys:
+
+    To create an encryption key for use in the serf gossip protocol, provide an
+    arbitrary string value. The consul agent job template transforms this
+    string into a 16-byte Base64-encoded value for consumption by the consul
+    process.
+
+3. <a id='stub'></a>Update Your Stub File:
+
+    Copy the contents of the files in the `./consul-certs` directory, as well as
+    the value for your Gossip encryption key, into your stub.
+
+## <a id='rotating-certs'></a>SSL Certificate, Key, and Certificate Authority Rotation
+
+To rotate your SSL certificates, keys, and certificate authorities, you must
+perform the following steps.
+
+1. Append the CA certificate to the `ca_cert` field. Do not remove old CA certificate. Deploy Cloud Foundry using your updated manifest.
+
+    ```yaml
+    ...
+    properties:
+      ...
+      consul:
+        ...
+        encrypt_keys:
+        - RANDOM-SECRET-VALUE
+        ca_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your Old CA Certificate           #######
+          ###########################################################
+          -----END CERTIFICATE-----
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your New CA Certificate           #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        agent_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your Old Agent Certificate        #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        agent_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ###########################################################
+          #######           Your Old Agent Key                #######
+          ###########################################################
+          -----END RSA PRIVATE KEY-----
+        server_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your Old Server Certificate       #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        server_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ###########################################################
+          #######           Your Old Server Key               #######
+          ###########################################################
+          -----END RSA PRIVATE KEY-----
+   ```
+
+2. Replace the old server and agent certificates and keys with the new
+   certificates and keys. Deploy Cloud Foundry using your updated manifest.
+
+    ```yaml
+    ...
+    properties:
+      ...
+      consul:
+        ...
+        encrypt_keys:
+        - RANDOM-SECRET-VALUE
+        ca_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your Old CA Certificate           #######
+          ###########################################################
+          -----END CERTIFICATE-----
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your New CA Certificate           #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        agent_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your New Agent Certificate        #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        agent_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ###########################################################
+          #######           Your New Agent Key                #######
+          ###########################################################
+          -----END RSA PRIVATE KEY-----
+        server_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your New Server Certificate       #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        server_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ###########################################################
+          #######           Your New Server Key               #######
+          ###########################################################
+          -----END RSA PRIVATE KEY-----
+   ```
+
+3. Remove your old CA Certificate. Deploy Cloud Foundry using your updated manifest.
+
+    ```yaml
+    ...
+    properties:
+      ...
+      consul:
+        ...
+        encrypt_keys:
+        - RANDOM-SECRET-VALUE
+        ca_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your New CA Certificate           #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        agent_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your New Agent Certificate        #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        agent_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ###########################################################
+          #######           Your New Agent Key                #######
+          ###########################################################
+          -----END RSA PRIVATE KEY-----
+        server_cert: |
+          -----BEGIN CERTIFICATE-----
+          ###########################################################
+          #######           Your New Server Certificate       #######
+          ###########################################################
+          -----END CERTIFICATE-----
+        server_key: |
+          -----BEGIN RSA PRIVATE KEY-----
+          ###########################################################
+          #######           Your New Server Key               #######
+          ###########################################################
+          -----END RSA PRIVATE KEY-----
+   ```
+
+## <a id='rotating-encryption-key'></a> Encryption Key Rotation
+
+To rotate your encryption key, perform the following steps:
+
+1. Insert the new encryption key above the old encryption key in the `encrypt_keys` field of your manifest. Do not remove old encryption key. 
+
+    ```yaml
+    ...
+    properties:
+      ...
+      consul:
+        ...
+        encrypt_keys:
+        - NEW-ENCRYPT-KEY
+        - OLD-ENCRYPT-KEY
+        ...
+   ```
+
+1. Deploy Cloud Foundry using your updated manifest.
+
+1. Remove the old encryption key from your manifest.
+
+    ```yaml
+    ...
+    properties:
+      ...
+      consul:
+        ...
+        encrypt_keys:
+        - NEW-ENCRYPT-KEY
+        ...
+   ```
+1. Deploy Cloud Foundry using your updated manifest.

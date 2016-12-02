@@ -1,0 +1,65 @@
+---
+title: 在BOSH-Lite上为Cloud Foundry建立一个部署Manifest文件
+owner: Release Integration
+---
+
+<strong><%= modified_date %></strong>
+
+本节描述如何给BOSH-Lite创建Cloud Foundry的部署文件. 假定你已经[安装了 BOSH-Lite](https://github.com/cloudfoundry/bosh-lite/blob/master/README.md#install-bosh-lite) 以及[BOSH CLI](https://bosh.io/docs/bosh-cli.html).
+
+##<a id="create-stub"></a>创建一个部署文件stub (Virtualbox非必选) ##
+
+如果你将BOSH-Lite部署到AWS Vagrant虚拟机, 你必须在部署文件stub中指定system domain. 如果你部署到本地的Vagrant虚拟机, 此步骤不是必须的.
+
+默认情况下, BOSH-Lite使用system domain为 `bosh-lite.com`, 这解析到地址 `10.244.0.34`. 更新system domain属性为下面两种值之一:
+
+  - 指向你之前创建的BOSH-Lite虚拟机的公共IP地址所配置的域名
+
+  - 使用 `xip.io` 域名, 该域名对应你的BOSH-Lite vagrant虚拟机的公共IP地址: `YOUR_PUBLIC_IP.xip.io`. 关于xip.io的更多信息, 参见 [xip.io](http://xip.io/).
+
+```
+---
+properties:
+  system_domain: bosh-lite.com # 更改成你的system domain
+```
+
+##<a id='target'></a>Target你的 BOSH Director
+
+使用`bosh target`命令以及你的BOSH Director的地址, 以连接到BOSH Director. 用默认的用户名以及密码 `admin` 和 `admin`登录, 或者使用你在安装BOSH-Lite时设定的用户名和密码.
+
+<pre class="terminal">
+$ bosh target <span>https</span>://bosh.my-domain.example.com
+Target set to `bosh'
+Your username: admin
+Enter password: *****
+Logged in as 'admin'
+</pre>
+
+##<a id="clone"></a>Clone cf-release的GitHub Repository ##
+
+<pre class="terminal">
+$ git clone https://github.com/cloudfoundry/cf-release.git
+</pre>
+
+##<a id="generate-manifest"></a>生成Manifest部署文件 ##
+
+确认你有最新版本的Cloud Foundry代码以及所有需要的子模块.
+
+1. 在上述git clone的`cf-release`目录(也是你建立部署文件manifest的目录), 运行update脚本获取所有的子模块.
+    <pre class="terminal">
+    $ cd cf-release
+    $ ./scripts/update
+    </pre>
+
+1. 运行 `gem install bundler` 安装[bundler](http://bundler.io/).
+1. 安装[spiff](https://github.com/cloudfoundry-incubator/spiff).
+1. 使用`scripts/generate-bosh-lite-dev-manifest`命令以创建部署文件并设置它为目前的BOSH部署.
+
+    <pre class="terminal">
+    $ cd cf-release
+    $ ./scripts/generate-bosh-lite-dev-manifest
+    </pre>
+1. (可选) 如果你在AWS上部署了BOSH-Lite, 或是创建了任何的带自定义配置的stub, 你应当将其作为参数传入上述命令:
+    <pre class="terminal">
+    $ ./scripts/generate-bosh-lite-dev-manifest PATH-TO-STUB ...
+    </pre>
