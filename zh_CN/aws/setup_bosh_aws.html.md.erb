@@ -1,46 +1,50 @@
 ---
-title: Deploying BOSH on AWS
+title: 在AWS上部署BOSH
 owner: Release Integration
 ---
 
-In the [previous step](./setup_aws.html) you prepared an AWS environment for BOSH. This document shows how to deploy BOSH into your AWS environment by creating a deployment manifest and passing it to `bosh-init`.
+在 [前一步](./setup_aws.html) 你为BOSH准备了一个AWS环境.
+本文档描述如何通过创建部署文件manifest并传递给`bosh-init`, 将BOSH部署到AWS上.
 
-## <a id="copy-keypair"></a>Copy the RSA Private Key
-When `bosh aws create` prepared your AWS environment, it generated an RSA private key file and saved it into your `~/.ssh` directory. To deploy BOSH, you need this file in your deployment directory.
+## <a id="copy-keypair"></a>拷贝RSA私钥
+在`bosh aws create`准备AWS环境中, 创建了 RSA 密钥文件并保存到你的`~/.ssh`目录.
+你在deployment目录中需要这个文件, 以部署BOSH.
 
-Copy the RSA private key file, `id_rsa_bosh`, to the `cf-example` directory you created in the [previous step](./setup_aws.html).
+将RSA密钥文件`id_rsa_bosh`拷贝至你在[前一步](./setup_aws.html)所创建的`cf-example`目录
 
 <pre class='terminal'>
 $ cp ~/.ssh/id_rsa_bosh ~/deployments/cf-example
 </pre>
 
-## <a id="create-manifest"></a>Create a Deployment Manifest
+## <a id="create-manifest"></a>创建部署manifest文件
 
-1. Log into the AWS Console.
+1. 登录到AWS Console.
 
-1. Create a deployment manifest file named `bosh.yml` in the deployment directory. For its contents, copy the YAML code from the [AWS BOSH manifest template](http://bosh.io/docs/init-aws.html#create-manifest) in the BOSH documentation.
+1. 在部署目录创建名为`bosh.yml`的部署manifest文件, 其内容为BOSH文档[AWS BOSH 部署manifest模板](http://bosh.io/docs/init-aws.html#create-manifest)中的YAML代码.
 
-1. Replace properties listed in the file as follows:
-    * `ELASTIC-IP`:In the **EC2 Dashboard** under **Elastic IPs**, use the Elastic IP with the Instance associated with **bosh**. Example: "203.0.113.126".
-    * `SUBNET-ID`: In the **VPC Dashboard** tab **Subnets**, use the Subnet ID for the subnet named "bosh1." Example: "subnet-2f58134a".
-    * `AVAILABILITY-ZONE` and `REGION`: Use the values from the `bosh_environment` file you created in the [previous step](./setup_aws.html).
-    * `ACCESS-KEY-ID` and `SECRET-ACCESS-KEY`: Use the values from your `bosh_environment` file.
-    * Replace all predefined passwords with passwords of your choice.</p>
+1. 根据下列更改文件中的属性:
+    * `ELASTIC-IP`:在**Elastic IPs**下**EC2 Dashboard**中, 使用与**bosh**相关联的instance的Elastic IP.
+    例如: "203.0.113.126".
+    * `SUBNET-ID`: 在**VPC Dashboard**选项卡的**Subnets**, 使用名为"bosh1."的子网的子网ID.
+    例如: "subnet-2f58134a".
+    * `AVAILABILITY-ZONE`以及`REGION`:使用你在[前一步](./setup_aws.html)创建的`bosh_environment`文件中的值.
+    * `ACCESS-KEY-ID`以及`SECRET-ACCESS-KEY`: 使用`bosh_environment`文件中的值.
+    * 将所有预先设定的密码更改为你选择的密码.</p>
 
-## <a id="deploy"></a>Deploy BOSH
+## <a id="deploy"></a>部署BOSH
 
-1. Confirm that [bosh-init](http://bosh.cloudfoundry.org/docs/install-bosh-init.html) and the [BOSH CLI](https://bosh.io/docs/bosh-cli.html) are installed on your machine.
+1. 确认 [bosh-init](http://bosh.cloudfoundry.org/docs/install-bosh-init.html) 以及 [BOSH CLI](https://bosh.io/docs/bosh-cli.html) 已经安装在你的机器上.
 
-1. Run `bosh-init deploy ./bosh.yml` to start the deployment process.
+1. 运行`bosh-init deploy ./bosh.yml`开始部署过程.
 
     <pre class='terminal'>
     $ bosh-init deploy ./bosh.yml
     ...
     </pre>
 
-    See [AWS CPI errors](http://bosh.io/docs/aws-cpi.html#errors) for list of common errors and resolutions.
+    常见错误和解决方案列表, 见[AWS CPI errors](http://bosh.io/docs/aws-cpi.html#errors).
 
-1. Use `bosh target ELASTIC-IP` to log into your new BOSH Director. The default username and password are `admin` and `admin`.
+1. 使用`bosh target ELASTIC-IP` 登录到你的BOSH Director. 默认的用户名和密码是`admin`和`admin`.
 
     <pre class="terminal">
     $ bosh target 198.51.100.129
@@ -51,5 +55,5 @@ $ cp ~/.ssh/id_rsa_bosh ~/deployments/cf-example
     Logged in as 'admin'
     </pre>
 
-For information about deploying BOSH on AWS without running `bosh aws create`, see the [Initializing BOSH environment on AWS](http://bosh.io/docs/init-aws.html) topic.
-
+有关如何不用运行`bosh aws create`就部署BOSH到AWS的信息,
+参见[在AWS上初始化BOSH环境](http://bosh.io/docs/init-aws.html).

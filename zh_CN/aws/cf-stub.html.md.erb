@@ -1,53 +1,55 @@
 ---
-title: Customizing the Cloud Foundry Deployment Manifest for AWS
+title: 为AWS定制化Cloud Foundry部署Manifest文件
 owner: Release Integration
 ---
 
 <strong><%= modified_date %></strong>
 
-This topic describes how to create the Cloud Foundry deployment manifest for Amazon Web Services (AWS). Before creating a manifest, you must have already [set up an environment](setup_aws.html) for Cloud Foundry on AWS and [deployed BOSH](setup_bosh_aws.html) on AWS.
+本节描述如何为Amazon Web Services (AWS)创建Cloud Foundry部署的manifest文件.
+在创建manifest文件之前, 需要为Cloud Foundry在AWS上[创建环境](setup_aws.html), 并在AWS上[部署BOSH](setup_bosh_aws.html).
+进行如下步骤来创建Cloud Foundry的manifest文件:
 
-To create a Cloud Foundry manifest, you must perform the following steps:
+1. 使用BOSH CLI命令行以[获取BOSH Director的UUID](#bosh-uuid). 你用来定制你的manifest stub.
+1. 创建一个YAML格式的manifest文件stub. 见下面的AWS[示例manifest文件stub](#stub), 并按照[编辑说明](#editing)来定制以适合你的部署.
+1. 用脚本合并manifest文件stub与其他在`cf-release` repository的配置文件合并, [生成你的配置文件manifest](#generate)
 
-1. Use the BOSH CLI to [retrieve your BOSH Director UUID](#bosh-uuid), which you use to customize your manifest stub.
-1. Create a manifest stub in YAML format. See the [example manifest stub](#stub) for AWS below, and follow the [editing instructions](#editing) to customize it for your deployment.
-1. Use a script to combine the manifest stub with other configuration files in the `cf-release` repository to [generate your deployment manifest](#generate).
+<p class="note"><strong>Note</strong>:
+  AWS 默认使用 用AWS帐号密码的Fog 作为Cloud Controller的blobstore.
+  要使用其他blobstore配置, 参见<a href="/deploying/common/cc-blobstore-config.html">Cloud Controller Blobstore 配置</a> 一节.</p>
 
-<p class="note"><strong>Note</strong>: AWS defaults to using Fog with AWS credentials for the Cloud Controller blobstore. For alternative blobstore configurations, see the <a href="/deploying/common/cc-blobstore-config.html">Cloud Controller Blobstore Configuration</a> topic.</p>
-
-##<a id='bosh-uuid'></a> Step 1: Retrieve Your BOSH Director UUID
+##<a id='bosh-uuid'></a> Step 1: 取得你的BOSH Director UUID
 
 <%= partial '../common/bosh_uuid' %>
 
-##<a id='stub'></a> Step 2: Create Your Manifest Stub
+##<a id='stub'></a> Step 2: 创建你的Manifest文件stub
 
-Review the [example manifest stub](#example-stub) for AWS, and then follow the [editing instructions](#editing) to customize it for your deployment.
+查看 AWS的[manifest文件stub实例](#example-stub), 并按照 [编辑说明](#editing) 为你的部署定制该文件.
 
-###<a id="example-stub"></a>Cloud Foundry Deployment Manifest Stub for AWS
+###<a id="example-stub"></a>为AWS的Cloud Foundry 部署Manifest Stub
 
 <%= yield_for_code_snippet from: 'cloudfoundry/cf-release', at: 'cf-stub-aws' %>
 
-###<a id="editing"></a>Editing Instructions 
+###<a id="editing"></a>编辑说明
 
 <table border="1" class="nice">
   <tr>
-    <th style="width:35%">Deployment Manifest Stub Contents</th>
-    <th>Editing Instructions</th>
+    <th style="width:35%">部署Manifest Stub文件的内容</th>
+    <th>编辑说明</th>
   </tr>
   <tr>
     <td><pre><code>
 meta:
   environment: ENVIRONMENT
     </code></pre></td>
-    <td>Replace <code>ENVIRONMENT</code> with an arbitrary name describing your environment, e.g. <code>aws-prod</code>.
+    <td>将 <code>ENVIRONMENT</code>替换为描述你的环境的任意名称, 如<code>aws-prod</code>.
     </td>
   </tr>
   <tr>
     <td><pre><code>
 director_uuid: DIRECTOR_UUID
     </code></pre></td>
-    <td>Replace <code>DIRECTOR_UUID</code> with the BOSH Director UUID. Use
-    <code>bosh status --uuid</code> to view the BOSH Director UUID.
+    <td>将 <code>DIRECTOR_UUID</code> 替换为 BOSH Director的 UUID. 使用
+    <code>bosh status --uuid</code> 查看 BOSH Director的 UUID.
     </td>
   </tr>
   <tr>
@@ -82,11 +84,11 @@ networks:
           - cf
         subnet: (( properties.template_only.aws.subnet_ids.cf2 ))
       </code></pre></td>
-    <td>If you used <code>bosh aws create</code> to set up your AWS environment, change the IP addresses here if needed to fit the subnet range from your bosh.yml file.
+    <td>如果你使用了<code>bosh aws create</code> 设定你的AWS环境, 如果要适应你在bosh.yml文件中的子网范围, 则在这里修改IP地址.
     <br/><br/>
-    This example assumes you have two subnets in your AWS VPC with CIDRs <code>10.10.16.0/20</code> and <code>10.10.80.0/20</code> respectively. Update the values for <code>range</code>, <code>reserved</code>, <code>static</code>, and <code>gateway</code> accordingly if the CIDRs for your subnets are different.
+    本例假定你有在带CIDR的AWS VPC中有两个子网, 分别是<code>10.10.16.0/20</code> 和 <code>10.10.80.0/20</code>. 相应更新 <code>range</code>, <code>reserved</code>, <code>static</code>, 以及 <code>gateway</code>的值, 如果你的子网的CIDR有所不同.
     <br/><br/>
-    This also assumes that you have a security group <code>cf</code> suitable for your Cloud Foundry VMs. Change this too if the name of your security group is different.
+    本例还假定你有一个security group <code>cf</code> 适应于 Cloud Foundry 虚拟机. 修改这个值, 如果你的security group名字与假定不同.
       </td>
   </tr>
   <tr>
@@ -102,13 +104,13 @@ properties:
         cf1: SUBNET_ID_1
         cf2: SUBNET_ID_2
       </code></pre></td>
-    <td>Replace <code>AWS_ACCESS_KEY</code> and <code>AWS_SECRET_ACCESS_KEY</code> with AWS credentials to allow Cloud Controller to manage assets in the S3 buckets you have prepared for this deployment.
+    <td>将 <code>AWS_ACCESS_KEY</code> 和 <code>AWS_SECRET_ACCESS_KEY</code> 替换为AWS的帐号密码,以便Cloud Controller管理 你为本次部署准备的 S3 buckets中的asset.
     <br/><br/>
-    Replace <code>ZONE_1</code> and <code>ZONE_2</code> with two EC2 Availability Zones that you want to distribute your deployment across.
+    替换 <code>ZONE_1</code> 和 <code>ZONE_2</code> 为你想要分发部署的EC2的两个Availability Zones.
     <br/><br/>
-    Replace <code>SUBNET_ID_1</code> and <code>SUBNET_ID_2</code> with the VPC subnet IDs corresponding to the subnets configured in the <code>networks</code> section above.
+    替换 <code>SUBNET_ID_1</code> 和 <code>SUBNET_ID_2</code> 为与上面<code>networks</code>一节配置的子网所对应的 VPC 子网ID.
     <br/><br/>
-    If you used <code>bosh aws create</code>, the key and zone values are in  the <code>bosh_environment</code> file that you originally bootstrapped from and the subnet IDs correspond to the subnets cf1 and cf2 already created.
+    如果你使用了 <code>bosh aws create</code>命令, 则key和zone的值在你最开始用以bootstrap的`bosh_environment`文件中, 而 对应子网cf1和cf2的子网ID已经在 <code>bosh_environment</code> 文件中创建好了.
     </td>
   </tr>
   <tr>
@@ -118,13 +120,27 @@ properties:
   app_domains:
    - APP_DOMAIN
       </code></pre></td>
-    <td>Replace <code>SYSTEM_DOMAIN</code> with the domain to be used for all system components. For instance, the Cloud Controller API will be reachable via <code>api.SYSTEM_DOMAIN</code>. Replace <code>APP_DOMAIN</code> with the domain you want associated with applications pushed to your Cloud Foundry installation. For instance, if you push <code>my-app</code> it will be reachable via <code>my-app.APP_DOMAIN</code>.
+    <td>替换 <code>SYSTEM_DOMAIN</code> 为所有系统component使用的域名.
+      例如, 用<code>api.SYSTEM_DOMAIN</code>来访问Cloud Controller API
+
+      替换<code>api.SYSTEM_DOMAIN</code>为你想要关联的Cloud Foundry安装上的应用.
+      例如, 如果你发布了<code>my-app</code>, 它就可以在<code>my-app.APP_DOMAIN</code>访问.
     <br/><br/>
-    It is generally advised to have separate values for <code>SYSTEM_DOMAIN</code> and <code>APP_DOMAIN</code>, e.g. <code>sys.cloud-09.cf-app.com</code> and <code>apps.cloud-09.cf-app.com</code>. For simple deployments, you can use the same domain for both, e.g. <code>cloud-09.cf-app.com</code>. However, you cannot have one domain property extend the other, e.g. you cannot have your <code>SYSTEM_DOMAIN</code> set to <code>cloud-09.cf-app.com</code> and your <code>APP_DOMAIN</code> set to <code>apps.cloud-09.cf-app.com</code>.
+    通常建议将<code>SYSTEM_DOMAIN</code>和<code>APP_DOMAIN</code>设为不同的值,
+    如 <code>sys.cloud-09.cf-app.com</code> 和 <code>apps.cloud-09.cf-app.com</code>.
+    简单的部署可以使用同一个域名,
+    如<code>cloud-09.cf-app.com</code>
+
+    然而你不能让一个域名属性扩展另外那个域名,
+    比如, 你不能设定 <code>SYSTEM_DOMAIN</code> 为 <code>cloud-09.cf-app.com</code>
+    同时设定 <code>APP_DOMAIN</code> 为 <code>apps.cloud-09.cf-app.com</code>.
     <br/><br/>
-    If you used <code>bosh aws create</code>, use the same value for both, created by concatenating the <code>BOSH_VPC_SUBDOMAIN</code> and <code>BOSH_VPC_DOMAIN</code> values in the <code>bosh_environment</code> file.
+
+    如果你使用了 <code>bosh aws create</code>, 那么将两个域名设为同一个值. 这个值是连接<code>bosh_environment</code>文件的<code>BOSH_VPC_SUBDOMAIN</code> 和 <code>BOSH_VPC_DOMAIN</code>得到的.
     <br/><br/>
-    Pick any name you like for the <code>SYSTEM_DOMAIN_ORGANIZATION</code>. This organization will be created and configured to own the <code>SYSTEM_DOMAIN</code>.
+
+    为<code>SYSTEM_DOMAIN_ORGANIZATION</code>选取你喜欢的任意名字.
+    这个organization将会被创建, 并配置成拥有<code>SYSTEM_DOMAIN</code>.
     </td>
   </tr>
   <tr>
@@ -132,7 +148,8 @@ properties:
   ssl:
     skip_cert_verify: true
     </code></pre></td>
-    <td> Set <code>skip_cert_verify</code> to <code>true</code> to skip SSL certificate verification. If you want to use SSL certificates to secure traffic into your deployment, see the <a href="../../adminguide/securing-traffic.html">Securing Traffic into Cloud Foundry</a> topic.
+    <td> 将<code>skip_cert_verify</code> 设置为 <code>true</code> 略过 SSL 证书验证.
+      如果你想要使用SSL证书为进入部署的网络流量加密, 参见<a href="../../adminguide/securing-traffic.html">为进入 Cloud Foundry的网络流量加密</a>
     </td>
   <tr>
     <td><pre><code>
@@ -143,12 +160,14 @@ properties:
     db_encryption_key: CCDB_ENCRYPTION_KEY
     </code></pre></td>
     <td>
-      The Cloud Controller API endpoint requires basic authentication. Replace <code>STAGING_UPLOAD_USER</code> and <code>STAGING_UPLOAD_PASSWORD</code> with a username and password of your choosing.
+      Cloud Controller API的endpoint需要基本认证.
+      替换 <code>STAGING_UPLOAD_USER</code> 和 <code>STAGING_UPLOAD_PASSWORD</code> 为你选择的用户名和密码.
       <br /><br />
-      Replace <code>BULK_API_PASSWORD</code> with a password of your choosing. Health Manager uses this password to access the Cloud Controller bulk API.
+      替换 <code>BULK_API_PASSWORD</code> 为你选择的密码. Health Manager使用该密码访问Cloud Controller bulk API.
       <br /><br />
-      Replace <code>CCDB_ENCRYPTION_KEY</code> with a secure key that you generate to encrypt sensitive values in the Cloud Controller database. 
-      You can use any random string. For example, run <code>md5 -qs "$(date)"</code> from a command line to generate a random string using the MD5 Hash Generator.
+      替换 <code>CCDB_ENCRYPTION_KEY</code>为你生成的 用以加密Cloud Controller数据库中敏感值的 安全密钥.
+      你可以使用任何随机字符串.
+      例如, 在命令行运行命令<code>md5 -qs "$(date)"</code> 使用MD5哈希生成器生成随机字符串
   </td>
   </tr>
   <tr>
@@ -166,11 +185,15 @@ properties:
     port: CCDB_PORT
     </code></pre></td>
     <td>
-      This section of the stub defines how the Cloud Controller connects to its database. The values depend on how you deployed your database.
+      stub文件的这部分定义 Cloud Controller 如何连接到 其 数据库.
+      使用的值取决于你如何部署你的数据库.
       <br /><br />
-      If you used <code>bosh aws create</code>, find the necessary values in the generated file <code>aws_rds_bosh_receipt.yml</code>. The database is an Amazon RDS instance, and the <code>CCDB_*</code> values in the stub must match the scheme, username, password, address, and port defined by AWS.
+      如果你使用了 <code>bosh aws create</code>, 在生成的 <code>aws_rds_bosh_receipt.yml</code> 文件中找到需要的值.
+      数据库是一个Amazon RDS实例, 且所有stub文件中的<code>CCDB_*</code>值必须匹配AWS定义的scheme, username, password, address, 及 port .
       <br /><br />
-      If you deployed your database without <code>bosh aws create</code>, such as using the <code>postgres</code> job in cf-release, the <code>CCDB_*</code> values must match the configuration of the database node. If you are using PostgreSQL, your database must have the required extensions available for Cloud Foundry: <code>uuid-ossp</code>, <code>pgcrypto</code>, and <code>citext</code>. The <code>db_scheme</code> for a PostgreSQL database is <code>postgresql</code>, not <code>postgres</code>.
+      如果你没有使用 <code>bosh aws create</code>部署数据库, 例如使用了cf-release里面的 <code>postgres</code> job, 则<code>CCDB_*</code>的值必须匹配数据库的配置.
+      如果你使用的是PostgreSQL, 你的数据库必须有为Cloud Foundry提供下列扩展: <code>uuid-ossp</code>, <code>pgcrypto</code>, 以及<code>citext</code>.
+      PostgreSQL数据库的 <code>db_scheme</code> 是 <code>postgresql</code>, 而不是 <code>postgres</code>.
       </td>
   </tr>
   <tr>
@@ -184,7 +207,7 @@ properties:
     agent_cert: CONSUL_AGENT_CERT
     agent_key: CONSUL_AGENT_KEY
       </code></pre></td>
-    <td>See the instructions on <a href="../common/consul-security.html">security configuration for consul</a>.
+    <td>参见 <a href="../common/consul-security.html">为consul进行安全配置</a>中的说明.
       </td>
   </tr>
   <tr>
@@ -192,7 +215,7 @@ properties:
   loggregator_endpoint:
     shared_secret: LOGGREGATOR_ENDPOINT_SHARED_SECRET
     </code></pre></td>
-    <td>Generate a string secret and replace <code>LOGGREGATOR_ENDPOINT_SHARED_SECRET</code>.
+    <td>生成一个秘密的字符串, 用其替换<code>LOGGREGATOR_ENDPOINT_SHARED_SECRET</code>.
       </td>
   </tr>
   <tr>
@@ -201,8 +224,7 @@ properties:
     user: NATS_USER
     password: NATS_PASSWORD
       </code></pre></td>
-    <td>Replace <code>NATS_USER</code> and
-        <code>NATS_PASSWORD</code> with a username and secure password of your choosing. Cloud Foundry components use these credentials to communicate with each other over the NATS message bus.
+    <td>替换 <code>NATS_USER</code> 和 <code>NATS_PASSWORD</code> 为你选择的用户名和安全密码. Cloud Foundry 的各个component 使用这个帐号密码 在NATS message bus上彼此沟通.
       </td>
   </tr>
   <tr>
@@ -213,8 +235,7 @@ properties:
       password: ROUTER_PASSWORD
       </code></pre></td>
     <td>
-      Replace <code>ROUTER_USER</code> and
-        <code>ROUTER_PASSWORD</code> with a username and secure password of your choosing.
+      替换 <code>ROUTER_USER</code> and <code>ROUTER_PASSWORD</code> 为你选择的用户名和安全密码.
       </td>
   </tr>
   <tr>
@@ -244,7 +265,7 @@ properties:
       notifications:
         secret: NOTIFICATIONS_CLIENT_SECRET
     </code></pre></td>
-    <td>Replace all the <code>*_SECRET</code>s with secure secrets that you generate.
+    <td>替换所有<code>*_SECRET</code>值为 你生成的安全密码.
       </td>
   </tr>
   <tr>
@@ -271,10 +292,12 @@ properties:
               waZKhM1W0oB8MX78M+0fG3xGUtywTx0D4N7pr1Tk2GTgNw==
               -----END RSA PRIVATE KEY-----
     </code></pre></td>
-    <td>Generate a PEM-encoded RSA key pair. This creates <code>jwt-key.pem.pub</code>, which contains your public key, and <code>jwt-key.pem</code>, which contains your private key.<br/>
-    You can generate a key pair by using the command <code>openssl rsa -in jwt-key.pem -pubout > key.pub</code>. This process creates <code>jwt-key.pem.pub</code>, which contains your public key, and <code>jwt-key.pem</code>, which contains your private key. Paste in the full private key, including the <code>BEGIN</code> and <code>END</code> delimiter lines, under <code>signingKey</code>.</br>
-    For RSA keys, all that needs to be configured is the private key. You can configure as many keys as you wish. However, only one, <code>active_key_id</code>, will be used to sign tokens with.
-    The others are used for signature validation.
+    <td>生成PEM编码的RSA键对. 这会生成文件 <code>jwt-key.pem.pub</code>, 它包含了你的公钥, 以及含有你密钥的文件<code>jwt-key.pem</code>. <br/>
+
+    你可以使用命令 <code>openssl rsa -in jwt-key.pem -pubout > key.pub</code> 生成一对键. 该过程创建<code>jwt-key.pem.pub</code>, 它包含了你的公钥, 以及 <code>jwt-key.pem</code>, 它包含了你的密钥. 在<code>signingKey</code>下面将密钥的全部内容粘贴进来, 这包括<code>BEGIN</code>和<code>END</code> 分界行. </br>
+
+    对RSA钥来讲, 只需要配置密钥. 你可以配置任意多的密钥. 然而, 只有一个密钥, <code>active_key_id</code>, 会被用来签署tokens.
+    其他的密钥被用来验证签名.
     </td>
   </tr>
   <tr>
@@ -288,7 +311,7 @@ properties:
           - scim.read
           - o...
     </code></pre></td>
-    <td>Generate a secure password and replace <code>ADMIN_PASSWORD</code> with that value to set the password for the Admin user of your Cloud Foundry installation.
+    <td>生成安全密码, 并用该值替换<code>ADMIN_PASSWORD</code>, 该值设定了Cloud Foundry 安装的Admin用户的密码.
     </td>
   </tr>
   <tr>
@@ -306,11 +329,13 @@ properties:
     port: UAADB_PORT
       </code></pre></td>
     <td>
-      This section of the stub defines how the UAA connects to its database. The values depend on how you deployed your database.
+      stub文件的这个部分定义 UAA 如何连接到其数据库.
+      所用的值取决于你如何部署数据库.
       <br /><br />
-      If you used <code>bosh aws create</code>, find the necessary values in the generated file <code>aws_rds_bosh_receipt.yml</code>. The database is an Amazon RDS instance, and the <code>UAADB_*</code> values in the stub must match the scheme, username, password, address, and port defined by AWS.
+      如果你使用了 <code>bosh aws create</code>, 在生成的文件 <code>aws_rds_bosh_receipt.yml</code>中找到所需的值. 该数据库是一个Amazon RDS实例, 且所有stub文件中的UAADB_*值必须匹配AWS定义的scheme, username, password, address, 及 port
       <br /><br />
-      If you deployed your database without <code>bosh aws create</code>, such as using the <code>postgres</code> job in cf-release, the <code>UAADB_*</code> values must match the configuration of the database node. If you are using PostgreSQL, your database must have the required extensions available for Cloud Foundry: <code>uuid-ossp</code>, <code>pgcrypto</code>, and <code>citext</code>. The <code>db_scheme</code> for a PostgreSQL database is <code>postgresql</code>, not <code>postgres</code>.
+      I如果你没有使用<code>bosh aws create</code>部署数据库, 例如使用了cf-release里面的<code>postgres</code> job, 则<code>UAADB_*</code>的值必须匹配数据库的配置. 如果你使用的是PostgreSQL, 你的数据库必须有为Cloud Foundry提供下列扩展: <code>uuid-ossp</code>, <code>pgcrypto</code>, 以及 <code>citext</code>.
+      PostgreSQL数据库的<code>db_scheme</code>是 <code>postgresql</code>, 而不是 <code>postgres</code>.
       </td>
   </tr>
   <tr>
@@ -323,14 +348,13 @@ properties:
     ca_cert: HM9000_CA_CERT
     </code></pre></td>
     <td>
-      Generate SSL certs for HM9000 and replace these values. You can use the <code>scripts/generate-hm9000-certs</code> script in the cf-release repository to generate self signed certs.
+      为HM9000生成SSL证书, 并替换上述值. 你可以使用cf-release repository中的脚本 <code>scripts/generate-hm9000-certs</code> 生成自签名的证书.
     </td>
   </tr>
 </table>
 
 <%= partial '../common/additional_config' %>
 
-##<a id='generate'></a>Step 3: Generate Your Manifest
+##<a id='generate'></a>Step 3: 生成你的部署manifest文件
 
 <%= partial '../common/generic_manifest' %>
-

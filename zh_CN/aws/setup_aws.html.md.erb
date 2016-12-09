@@ -1,5 +1,5 @@
 ---
-title: Bootstrapping an AWS Environment for Cloud Foundry
+title: 为Cloud Foundry设置AWS环境
 owner: Release Integration
 ---
 
@@ -16,50 +16,60 @@ owner: Release Integration
 
 <strong><%= modified_date %></strong>
 
-This topic describes how to set up an environment for Cloud Foundry on Amazon Web Services (AWS) using `bosh aws create`. This command-line bootstrap tool creates all of the structures that underlie your deployment.
+本节描述如何使用`bosh aws create`为Cloud Foundry在Amazon Web Service (AWS) 上建立环境.
+该命令行工具会为你的部署创建所有的structure
 
-The `bosh aws create` command creates many structures within AWS. If it does not complete successfully, or you want to abort the process, you can clean up the AWS environment with a companion [destroy command](#destroy-environment).
-<p class="note"><strong>Note</strong>: The destroy command deletes all user-created structures in your AWS account, not just the ones created by `bosh aws create`.
+`bosh aws create`命令会在AWS创建许多structure.
+如果该命令没有成功结束, 或你想终止该过程,
+你可以用销毁命令[destroy command](#destroy-environment)清理AWS环境
+
+<p class="note"><strong>Note</strong>:
+  销毁命令会删除你的AWS帐号所有的用户所创建的structures, 包括但不限于那些用`bosh aws create`所创建的structures.
 </p>
 
-## <a id="domain-prep"></a> Prepare a Domain ##
+## <a id="domain-prep"></a> 准备域名 ##
 
-1. Select a DNS domain name for your Cloud Foundry instance. For example, if you select the domain name *cloud.example.com*, Cloud Foundry deploys each of your applications as `APP-NAME.cloud.example.com`.
+1. 为你的Cloud Foundry实例选择DNS域名.
+例如, 如果你选的域名是*cloud.example.com*, Cloud Foundry会将你的应用部署至`APP-NAME.cloud.example.com`.
 
-1. From the AWS [Route 53 dashboard](https://console.aws.amazon.com/route53), click **Hosted zones**.
+1. 在AWS的[Route 53 dashboard](https://console.aws.amazon.com/route53)中, 点击 **Hosted zones**
 
-1. Click the **Create Hosted Zone** button.
+1. 点击**Create Hosted Zone**按钮
 
-1. Under **Domain Name**, enter the domain name you chose above, for AWS to host.
+1. 在**Domain Name**下, 输入上述域名, AWS会host此域名.
 
-1. Under **Type** choose **Public Hosted Zone**. This creates four name server (NS) records for your hosted zone.
+1. **Type**中选择**Public Hosted Zone**. 这会为你的hosted zone创建四个name server (NS)记录
 
-1. From your domain registrar, delegate DNS authority for your hosted zone to your four Amazon Route 53 name servers. To do this, replace your registrar's NS records for the domain with the NS record values you created in the last step.
-<p class='note'><strong>Note</strong>: You can also find your NS record values by selecting your domain under the <strong>Hosted zones</strong> tab.</p>
+1. 在你的域名注册商中, 将你的hosted zone的DNS Authority代理给上述四个Amazon Route 53 名字服务器.
+你需要替换你的注册商的NS记录为你在上一步创建的NS记录的domain.
+
+<p class='note'><strong>Note</strong>:
+你还可以通过<strong>Hosted zones</strong>中选择你的域名来获得NS记录的值
+</p>
 <%= image_tag("aws_images/hostedzone.png") %>
 
-## <a id="deployment-env-prep"></a> Prepare the Deployment Environment ##
+## <a id="deployment-env-prep"></a> 准备部署环境 ##
 
-1. Install the `bundler` RubyGem:
+1. 安装`bundler` Ruby包(gems):
 
     <pre class="terminal">
     $ gem install bundler
     </pre>
 
-1. Create a `deployments` directory:
+1. 创建 `deployments` 目录:
 
     <pre class="terminal">
     $ mkdir deployments
     </pre>
 
-1. From your `deployments` directory, make a sub-directory named `cf-example` to hold the gems and configuration information that BOSH needs to create your environment:
+1. 在 `deployments` 目录内, 建立一个名为 `cf-example` 的子目录, 用来保存BOSH所需要的建立环境的ruby gems 以及配置信息:
 
     <pre class="terminal">
     $ cd deployments
     $ mkdir cf-example
     </pre>
 
-1. In the `cf-example` sub-directory, create a file named `Gemfile` modeled after the following contents, but with the `ruby` argument matching the Ruby version that you are running:
+1. 在`cf-example`子目录, 创建名为`Gemfile`的文件, 类似于下列内容, 但`ruby`的参数要匹配你所运行的Ruby的版本:
 
     ~~~
     source 'https://rubygems.org'
@@ -68,9 +78,7 @@ The `bosh aws create` command creates many structures within AWS. If it does not
     gem "bosh_cli_plugin_aws"
     ~~~
 
-
-1. Run `bundle install` to install the `bosh_cli_plugin_aws` gem and its dependencies.
-
+1. 运行`bundle install`以安装`bosh_cli_plugin_aws`的gem包以及其依赖包
     <pre class="terminal">
     $ bundle install
 
@@ -80,21 +88,22 @@ The `bosh aws create` command creates many structures within AWS. If it does not
     Use `bundle show [gemname]` to see where a bundled gem is installed.
     </pre>
 
-1. <a id="generate-credentials"></a>Generate a set of AWS access key credentials from the **Identity and Access Management** (IAM) Dashboard, under **Users**.
-    * For a new user, click **Create New Users** and enter a user name.
-    * For an existing user, choose the user, select the **Security Credentials** tab, and click **Create Access Key**.
+1. <a id="generate-credentials"></a>
+在AWS中, **User**下选择**Identity and Access Management** Dashboard, 建立一组AWS的访问密钥(access key)的帐号密码.
+    * 对新用户, 点击 **Create New Users** 并输入用户名.
+    * 对已存在用户, 选择用户, 选择 **Security Credentials** 选项卡, 并点击 **Create Access Key**.
 
-1. Click **Show User Security Credentials** and record both the Access Key ID and Secret Access Key.
+1. 点击**Show User Security Credentials**并记录Access Key ID和Secret Access Key
 
-1. Make sure your user has permissions to create an environment for Cloud Foundry on AWS.
-    * Select the **Permissions** tab on the user's page.
-    * Click **Attach Policy**.
-    * Select the checkbox next to **AdministratorAccess**. This setting provides your user with full access to AWS services and resources.
-    * Click **Attach Policy** at lower right.
-<p class="note"><strong>Note:</strong> For more security, you can restrict the IAM user to a finer-grained set of permissions, but generally Administrator permissions will do.</p>
+1. 确认用户有权限在AWS上为Cloud Foundry创建环境.
+    * 在该用户的页面选择**Permissions** 选项卡.
+    * 点击**Attach Policy**.
+    * 选中 **Administrator Access** 旁边的checkbox. 该设置给你的用户提供AWS服务和资源的完全访问.
+    * 点击右下角的**Attach Policy**.
+<p class="note"><strong>Note:</strong> 为了更安全, 你可以限制IAM用户为使用更细粒度设置的权限, 但是通常来讲Administrator权限就能工作.</p>
 
-1. Create a file named `bosh_environment` and add the following contents,
-replacing the values in each line to match your configuration as described below:
+1. 创建名为`bosh_environment`的文件, 加入以下内容,
+并用符合你的配置的值替换每一行的值, 见以下描述:
     <pre><code>export BOSH\_VPC\_DOMAIN=example.com
     export BOSH\_VPC\_SUBDOMAIN=my-subdomain
     export BOSH\_AWS\_ACCESS\_KEY\_ID=AWS\_ACCESS\_KEY\_ID
@@ -103,29 +112,22 @@ replacing the values in each line to match your configuration as described below
     export BOSH\_VPC\_PRIMARY\_AZ=us-east-1a
     export BOSH\_VPC\_SECONDARY\_AZ=us-east-1b
     </code></pre>
-    * The values for `BOSH_VPC_DOMAIN` and `BOSH_VPC_SUBDOMAIN`
-    must correspond to the DNS domain name that you set up when <a href="#domain-prep">configuring
-    Route 53</a>. This example uses `my-subdomain.example.com`.
-    * For `BOSH_AWS_ACCESS_KEY_ID` and `BOSH_SECRET_ACCESS_KEY`, use the key pair you <a href="#generate-credentials">created above</a> as AWS access key credentials.
-    * For the `BOSH_AWS_REGION` property, use your AWS region. This example
-    uses `us-east-1`.
-    * For the `BOSH_VPC_PRIMARY_AZ` and `BOSH_VPC_SECONDARY_AZ` properties,
-    choose an availability zone that is listed as "operating normally" in the
-    Health Status section of the
-    [AWS Console](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1)
-    for your region. This example uses `us-east-1a` and `us-east-1b`.
+    * `BOSH_VPC_DOMAIN`和`BOSH_VPC_SUBDOMAIN`的值必须对应你在<a href="#domain-prep">配置 Route 53</a>时设置的DNS域名. 本例使用`my-subdomain.example.com`.
+    * 对于`BOSH_AWS_ACCESS_KEY_ID`和`BOSH_SECRET_ACCESS_KEY`, 使用你在<a href="#generate-credentials">上面创建</a>的密钥对作为 AWS 的访问密钥.
+    * 对于`BOSH_AWS_REGION` 属性, 使用你所在的 AWS region. 本例使用`us-east-1`.
+    * 对于`BOSH_VPC_PRIMARY_AZ`以及`BOSH_VPC_SECONDARY_AZ`属性,
+    选择对你选的region (本例的`us-east-1`), 其[AWS Console](https://console.aws.amazon.com/ec2/v2/home?region=us-east-1)的Health Status部分为"operating normally"的availability zone.
+    本例使用`us-east-1a` and `us-east-1b`.
 
-
-1. Run `source bosh_environment` to set the environment variables required for
-the AWS bootstrap tool, `bosh aws create`.
+1. 运行`source bosh_environment` 设置AWS bootstrap工具,`bosh aws create`,所需的环境变量.
 <pre class="terminal">
     $ source bosh_environment
 </pre>
 
-1. Run `bosh aws create` to create a VPC Internet Gateway, VPC subnets,
-three RDS databases, and a NAT VM for Cloud Foundry subnet routing.
-This command generates two receipt files, `aws_rds_receipt.yml` and
-`aws_vpc_receipt.yml`, that you use when deploying Cloud Foundry.
+1. 运行`bosh aws create`以创建VPC Internet 网关, VPC 子网,
+三个 RDS 数据库, 以及为Cloud Foundry子网路由的NAT虚拟机.
+该命令生成两个返回的文件, `aws_rds_receipt.yml` 和
+`aws_vpc_receipt.yml`. 这两个文件用于部署Cloud Foundry.
 
     <pre class="terminal">
     $ bosh aws create
@@ -141,35 +143,32 @@ This command generates two receipt files, `aws_rds_receipt.yml` and
     creating bucket xxxx-bosh-artifacts
     </pre>
 
-    <p class="note"><strong>Note</strong>: RDS database creation may take 20 or more minutes.
+    <p class="note"><strong>Note</strong>: RDS 数据库建立可能花费20分钟或更长时间.
     </p>
 
-    <p class="note"><strong>Note</strong>: If the <code>bosh aws create</code> command returns an error, you can destroy the AWS environment, as described in the next section.</p>
+    <p class="note"><strong>Note</strong>: 如果<code>bosh aws create</code> 命令返回错误, 你可以销毁AWS环境. 下节将做介绍.</p>
 
-1. From the AWS **EC2 Dashboard**, navigate to **Elastic IPs**.
+1. 在AWS **EC2 Dashboard**, 转至 **Elastic IPs**.
 
-1. Click **Allocate New Address** or select an existing Elastic IP that does not already list an associated instance.
+1. 点击**Allocate New Address**, 或者选择已经存在但未用在instance中的Elastic IP.
 
-1. With the IP address selected, associate it with the NAT VM instance by clicking **Actions** and selecting **Associate Address**.
+1. 选中IP地址后, 点击**Actions**再选择**Associate Address**, 这会将IP地址于NAT虚拟机联系起来
 
-1. In the **Associate Address** popup, click into the **Instance** field and select the instance listed as running `cf_nat_box1`.
+1. 在**Associate Address**弹出框中, 点击进入**Instance**, 并选择列为`cf_nat_box1`运行的实例.
 <%= image_tag("aws_images/AWS-bind-IP-to-NAT.png") %>
 
-## <a id="destroy-environment"></a>Destroy the AWS Environment ##
-You can use <code>bosh aws destroy</code> to delete all user-created structures in your AWS environment. This is useful if `bosh aws create` does not complete successfully and you want to reset your environment, or if you want to tear down your AWS structures for any other reason.
+## <a id="destroy-environment"></a>销毁AWS环境 ##
+你可以使用<code>bosh aws destroy</code>删除所有你的AWS环境中用户创建的structures.
+这在`bosh aws create`没有成功结束而你想重启你的环境, 或是在你想因为任何销毁你的AWS环境时用的上.
 
 <pre class="terminal">
 $ bosh aws destroy
 </pre>
-This command prompts you to delete EC2 instances, EBS volumes, RDS databases, S3 buckets, VPCs, key pairs, Elastic IPs, security groups, and NS/SOA records in your account.
+这个命令提示你删除EC2实例, EBS volumes, RDS数据库, S3 bucket, VPCs, 键对, Elastic IPs, security groups以及你账户中的NS/SOA记录
 
 <p class="note warning">
-<strong>WARNING: </strong> The command <code>bosh aws destroy</code> destroys
-    everything in your AWS account, including all S3 buckets and all instances.
-    Do not use this command unless you want to lose <strong>everything</strong>
-    in your AWS account, including objects and files unrelated to your Cloud
-    Foundry deployment.
+<strong>WARNING: </strong> 命令<code>bosh aws destroy</code>销毁你账户中的所有东西
+    包括所有的S3 buckets和所有的实例.
+    不要使用这条命令, 除非你想要删除你AWS账户的<strong>所有东西</strong>.
+    这包括与Cloud Foundry部署不相关的objects 和文件.
 </p>
-
-
-
